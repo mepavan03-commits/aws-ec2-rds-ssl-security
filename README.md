@@ -1,73 +1,207 @@
-🚀 Secure Amazon RDS (MySQL 8.4) Connection from EC2 using SSL/TLS
+# 🚀 Secure Amazon RDS (MySQL 8.4) Connection from Amazon EC2 using SSL/TLS
 
-A production-inspired AWS hands-on project demonstrating how to securely connect an Amazon EC2 instance to an Amazon RDS MySQL database using SSL/TLS encryption. This project focuses on AWS networking, security, database connectivity, and encrypted communication.
+A production-inspired AWS hands-on project demonstrating how to securely connect an Amazon EC2 instance to an Amazon RDS MySQL database using SSL/TLS encryption. This project focuses on AWS networking, database security, secure connectivity, and encrypted communication.
 
-📌 Project Overview
+---
 
-In this project, I configured a secure connection between an Ubuntu EC2 instance and an Amazon RDS MySQL 8.4 database inside AWS. I implemented networking, security group configuration, SSL certificate validation, and verified encrypted database communication using the MySQL client.
+# 📌 Project Overview
 
-🛠️ AWS Services & Technologies Used
+In this project, I configured a secure connection between an Ubuntu EC2 instance and an Amazon RDS MySQL 8.4 database inside AWS. I implemented networking, Security Group configuration, SSL certificate validation, and verified encrypted database communication using the MySQL client.
 
-Amazon EC2 (Ubuntu)
+---
 
-Amazon RDS (MySQL 8.4)
+# 🛠️ AWS Services & Technologies Used
 
-Amazon VPC (same VPC for EC2 and RDS)
+- Amazon EC2 (Ubuntu)
+- Amazon RDS (MySQL 8.4)
+- Amazon VPC
+- AWS Security Groups
+- MySQL Client
+- Linux (Ubuntu)
+- SSL/TLS
+- AWS Root CA Certificate
 
-Security Groups
+---
 
-MySQL Client
+# 🏗️ Architecture
 
-AWS Root CA Certificate (SSL/TLS)
+The Amazon EC2 instance and Amazon RDS MySQL database were deployed inside the same AWS VPC.
 
-🏗️ Architecture
+Database connectivity was secured by allowing MySQL (Port 3306) access **only from the EC2 Security Group**, instead of exposing the database to the internet using `0.0.0.0/0`.
 
-Both the EC2 instance and the RDS database were placed inside the same VPC. RDS was kept without public access, so the database is only reachable from within the private network — not from the public internet.
+Database traffic between EC2 and RDS travels through AWS networking while SSL/TLS encrypts the communication between the client and the database server.
 
+```
+                Amazon VPC
++---------------------------------------------+
 
+        EC2 (Ubuntu)
+      MySQL Client Installed
+               │
+               │
+      Port 3306 (MySQL)
+               │
+      Security Group
+ (Only EC2 SG Allowed)
+               │
+               ▼
+      Amazon RDS MySQL 8.4
 
-EC2 (Ubuntu, private subnet) → Security Group (port 3306) → RDS MySQL (private, same VPC)
++---------------------------------------------+
+```
 
-Because both resources are in the same VPC, the actual database traffic travels over AWS's internal private network rather than the public internet. Internet access was only needed once — to download the AWS Root CA certificate used for the SSL connection.
+---
 
-🔐 Security Group Configuration
+# 🔐 Security Group Configuration
 
-The RDS security group's inbound rule was restricted to the EC2 instance's Security Group ID, instead of allowing any specific IP or opening the port to the public (0.0.0.0/0).
+The RDS Security Group was configured using AWS Security Best Practices.
 
-Why this approach:
+### Inbound Rule
 
+| Type | Source |
+|------|--------|
+| MySQL/Aurora (3306) | EC2 Security Group |
 
+### Why this approach?
 
-Blocks all public internet access to port 3306
+- Restricts database access to the EC2 instance only.
+- Prevents unnecessary public access using `0.0.0.0/0`.
+- Continues working even if the EC2 private IP changes after stop/start because the rule references the Security Group instead of an IP address.
 
-Keeps working even if the EC2 instance's private IP changes after a stop/start, since it references the Security Group rather than a fixed IP
+---
 
-TypeSourceMySQL/Aurora (Inbound)EC2 Security Group IDOutbound0.0.0.0/0 (default, allows RDS to reach out for updates)
+# 🔒 SSL/TLS Secure Connection
 
-🔒 SSL/TLS Setup & Connection
+To encrypt data in transit, I downloaded the AWS Root CA certificate on the EC2 instance and configured MySQL to verify the server identity before establishing the connection.
 
-To encrypt data in transit, I downloaded AWS's Root CA bundle on the EC2 instance and used it to enforce a verified, encrypted connection to RDS.
+## Download AWS Root CA Certificate
 
-1. Download AWS's Root CA certificate:
+```bash
 wget https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+```
 
-2. Connect to RDS with SSL enforced:
-mysql -h pavan-mysql-rds.c7u8qkg00da6.ap-south-1.rds.amazonaws.com \
--P 3306 -u pavan_admin -p \
+---
+
+## Connect to Amazon RDS using SSL
+
+```bash
+mysql \
+-h pavan-mysql-rds.c7u8qkg00da6.ap-south-1.rds.amazonaws.com \
+-P 3306 \
+-u pavan_admin \
+-p \
 --ssl-mode=VERIFY_IDENTITY \
 --ssl-ca=./global-bundle.pem
+```
 
-VERIFY_IDENTITY makes the client verify that the server's certificate is valid and actually matches the RDS endpoint being connected to, so the connection can't be silently redirected to a different server.
+Using **VERIFY_IDENTITY** ensures that:
 
+- The server certificate is valid.
+- The certificate matches the actual RDS endpoint.
+- The client is protected against Man-in-the-Middle (MITM) attacks.
 
+---
+
+# ✅ SSL Verification
+
+Inside the MySQL shell:
+
+```sql
 STATUS;
+```
 
-This confirmed the session was using cipher TLS_AES_128_GCM_SHA256 and connecting through port 3306 over the RDS endpoint.
+Verified:
 
+- SSL Enabled
+- Cipher Suite
 
+```
+TLS_AES_128_GCM_SHA256
+```
 
+Also verified the authenticated user:
 
+```sql
+SELECT USER(), CURRENT_USER();
+```
 
-🎯 Summary
+---
 
-I deployed an Amazon RDS MySQL instance, restricted access to it using Security Groups instead of public IP rules, and connected to it from an EC2 instance using an SSL/TLS-encrypted connection verified with VERIFY_IDENTITY m
+# 💻 Linux & MySQL Commands Used
+
+```bash
+wget
+mysql
+nc -zv
+ls
+pwd
+chmod
+```
+
+```sql
+STATUS;
+SELECT USER();
+SELECT CURRENT_USER();
+```
+
+---
+
+# 🎯 Skills Demonstrated
+
+- Amazon EC2
+- Amazon RDS
+- Amazon VPC
+- AWS Security Groups
+- Linux Administration
+- MySQL Client
+- SSL/TLS Encryption
+- Database Connectivity
+- AWS Networking
+- Cloud Security Best Practices
+
+---
+
+# 📸 Project Screenshots
+
+### 1. Amazon RDS Dashboard
+
+- RDS Instance Status
+- MySQL Engine Version
+- Database Availability
+
+---
+
+### 2. Security Group Configuration
+
+- MySQL Port (3306)
+- EC2 Security Group Access
+- Secure Inbound Rule Configuration
+
+---
+
+### 3. SSL/TLS Verification
+
+- MySQL STATUS Output
+- TLS_AES_128_GCM_SHA256
+- Secure Database Session
+
+---
+
+# 📚 Key Learnings
+
+- Secure communication between Amazon EC2 and Amazon RDS.
+- AWS Security Group configuration for database security.
+- SSL/TLS implementation using AWS Root CA certificates.
+- Identity verification using VERIFY_IDENTITY.
+- Troubleshooting secure database connectivity.
+- AWS networking best practices.
+
+---
+
+# 🏆 Project Outcome
+
+Successfully established a secure SSL/TLS encrypted connection between Amazon EC2 and Amazon RDS MySQL 8.4.
+
+The encrypted connection was verified using the AWS Root CA certificate, VERIFY_IDENTITY mode, and TLS session validation.
+
+This project strengthened my practical understanding of AWS networking, Linux administration, database security, and secure cloud architecture.
