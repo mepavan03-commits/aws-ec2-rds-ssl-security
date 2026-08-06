@@ -1,183 +1,85 @@
-## 🚀 Secure Amazon RDS (MySQL 8.4) Connection from EC2 using SSL/TLS
+🚀 Secure Amazon RDS (MySQL 8.4) Connection from EC2 using SSL/TLS
 
 A production-inspired AWS hands-on project demonstrating how to securely connect an Amazon EC2 instance to an Amazon RDS MySQL database using SSL/TLS encryption. This project focuses on AWS networking, security, database connectivity, and encrypted communication.
 
----
-
-## 📌 Project Overview
+📌 Project Overview
 
 In this project, I configured a secure connection between an Ubuntu EC2 instance and an Amazon RDS MySQL 8.4 database inside AWS. I implemented networking, security group configuration, SSL certificate validation, and verified encrypted database communication using the MySQL client.
 
----
+🛠️ AWS Services & Technologies Used
 
-## 🛠️ AWS Services & Technologies Used
+Amazon EC2 (Ubuntu)
 
-- Amazon EC2 (Ubuntu)
-- Amazon RDS (MySQL 8.4)
-- Amazon VPC
-- Security Groups
-- MySQL Client
-- SSL/TLS Encryption
-- Linux (Ubuntu)
-- AWS CA Certificate Bundle
-
----
-
-## ⚡ Project Architecture
-
-```
-EC2 (Ubuntu)
-     │
-     │ MySQL Client
-     │
-SSL/TLS Encrypted Connection
-     │
-Port 3306
-     │
-Security Group
-     │
 Amazon RDS (MySQL 8.4)
-```
 
----
+Amazon VPC (same VPC for EC2 and RDS)
 
-## 🔧 Implementation Steps
+Security Groups
 
-### 1. Amazon RDS Configuration
+MySQL Client
 
-- Created an Amazon RDS MySQL 8.4 database.
-- Configured networking inside the Default VPC.
-- Configured database credentials.
-- Verified database availability.
+AWS Root CA Certificate (SSL/TLS)
 
----
+🏗️ Architecture
 
-### 2. Network & Security Configuration
+Both the EC2 instance and the RDS database were placed inside the same VPC. RDS was kept without public access, so the database is only reachable from within the private network — not from the public internet.
 
-- Configured the RDS Security Group.
-- Allowed MySQL traffic (Port 3306) only from the EC2 instance.
-- Verified network connectivity between EC2 and RDS.
 
----
 
-### 3. Connectivity Verification
+EC2 (Ubuntu, private subnet) → Security Group (port 3306) → RDS MySQL (private, same VPC)
 
-Verified database reachability using:
+Because both resources are in the same VPC, the actual database traffic travels over AWS's internal private network rather than the public internet. Internet access was only needed once — to download the AWS Root CA certificate used for the SSL connection.
 
-```bash
-nc -zv <RDS-ENDPOINT> 3306
-```
+🔐 Security Group Configuration
 
-This confirmed that Port 3306 was accessible from the EC2 instance.
+The RDS security group's inbound rule was restricted to the EC2 instance's Security Group ID, instead of allowing any specific IP or opening the port to the public (0.0.0.0/0).
 
----
+Why this approach:
 
-### 4. SSL/TLS Configuration
 
-- Downloaded the AWS CA Certificate Bundle (`global-bundle.pem`).
-- Configured MySQL to use SSL encryption.
-- Connected using:
 
-```bash
-mysql \
---host=<RDS-ENDPOINT> \
---user=pavan_admin \
---ssl-mode=VERIFY_IDENTITY \
---ssl-ca=global-bundle.pem
-```
+Blocks all public internet access to port 3306
 
----
+Keeps working even if the EC2 instance's private IP changes after a stop/start, since it references the Security Group rather than a fixed IP
 
-### 5. SSL Verification
+TypeSourceMySQL/Aurora (Inbound)EC2 Security Group IDOutbound0.0.0.0/0 (default, allows RDS to reach out for updates)
 
-Verified the encrypted session inside MySQL using:
+🔒 SSL/TLS Setup & Connection
 
-```sql
+To encrypt data in transit, I downloaded AWS's Root CA bundle on the EC2 instance and used it to enforce a verified, encrypted connection to RDS.
+
+1. Download AWS's Root CA certificate:
+
+
+
+wget https://truststore.pki.rds.amazonaws.com/ap-south-1/ap-south-1-bundle.pem
+
+2. Connect to RDS with SSL enforced:
+
+
+
+mysql -h pavan-mysql-rds.c7u8qkg00da6.ap-south-1.rds.amazonaws.com \
+
+-u pavan_admin -p \
+
+--ssl-ca=ap-south-1-bundle.pem \
+
+--ssl-mode=VERIFY_IDENTITY
+
+VERIFY_IDENTITY makes the client verify that the server's certificate is valid and actually matches the RDS endpoint being connected to, so the connection can't be silently redirected to a different server.
+
+3. Verify the connection is encrypted:
+
+
+
 STATUS;
-```
 
-Confirmed:
+This confirmed the session was using cipher TLS_AES_128_GCM_SHA256 and connecting through port 3306 over the RDS endpoint.
 
-- SSL Enabled
-- TLS Cipher:
-  - `TLS_AES_128_GCM_SHA256`
 
-Also verified the authenticated database user:
 
-```sql
-SELECT USER(), CURRENT_USER();
-```
 
----
 
-## 💻 Linux & MySQL Commands Used
+🎯 Summary
 
-```bash
-nc -zv
-wget
-mysql
-ls
-pwd
-chmod
-```
-
-```sql
-STATUS;
-SELECT USER();
-SELECT CURRENT_USER();
-```
-
----
-
-## 🎯 Skills Demonstrated
-
-- Amazon RDS Administration
-- Amazon EC2
-- AWS Networking
-- Amazon VPC
-- Security Groups
-- MySQL Connectivity
-- SSL/TLS Encryption
-- Linux Administration
-- Database Security
-- Cloud Troubleshooting
-
----
-
-## 📸 Project Screenshots
-
-### AWS RDS Dashboard
-
-- RDS instance status
-- MySQL Engine
-- Database Availability
-
-### Security Group Configuration
-
-- Inbound Rule (Port 3306)
-- Network Configuration
-
-### SSL Verification
-
-- MySQL STATUS Output
-- Active TLS Cipher
-- Secure Database Session
-
----
-
-## 📚 Key Learnings
-
-- Secure communication between EC2 and RDS
-- Configuring AWS Security Groups
-- Database networking inside AWS VPC
-- SSL/TLS implementation for MySQL
-- Identity verification using AWS CA certificates
-- Troubleshooting database connectivity
-
----
-
-## 🏆 Project Outcome
-
-Successfully established a secure SSL/TLS encrypted connection between Amazon EC2 and Amazon RDS MySQL 8.4.
-
-The database communication was verified using AWS CA certificates, encrypted TLS sessions, and MySQL status validation, following AWS security best practices for cloud database connectivity.
+I deployed an Amazon RDS MySQL instance, restricted access to it using Security Groups instead of public IP rules, and connected to it from an EC2 instance using an SSL/TLS-encrypted connection verified with VERIFY_IDENTITY m
