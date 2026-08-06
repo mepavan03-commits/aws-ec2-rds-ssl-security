@@ -49,27 +49,15 @@ TypeSourceMySQL/Aurora (Inbound)EC2 Security Group IDOutbound0.0.0.0/0 (default,
 To encrypt data in transit, I downloaded AWS's Root CA bundle on the EC2 instance and used it to enforce a verified, encrypted connection to RDS.
 
 1. Download AWS's Root CA certificate:
-
-
-
-wget https://truststore.pki.rds.amazonaws.com/ap-south-1/ap-south-1-bundle.pem
+wget https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
 
 2. Connect to RDS with SSL enforced:
-
-
-
 mysql -h pavan-mysql-rds.c7u8qkg00da6.ap-south-1.rds.amazonaws.com \
-
--u pavan_admin -p \
-
---ssl-ca=ap-south-1-bundle.pem \
-
---ssl-mode=VERIFY_IDENTITY
+-P 3306 -u pavan_admin -p \
+--ssl-mode=VERIFY_IDENTITY \
+--ssl-ca=./global-bundle.pem
 
 VERIFY_IDENTITY makes the client verify that the server's certificate is valid and actually matches the RDS endpoint being connected to, so the connection can't be silently redirected to a different server.
-
-3. Verify the connection is encrypted:
-
 
 
 STATUS;
